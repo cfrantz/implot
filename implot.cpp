@@ -3954,6 +3954,7 @@ bool DragLineX(int n_id, double* value, const ImVec4& col, float thickness, ImPl
     }
 
     const bool input = !ImHasFlag(flags, ImPlotDragToolFlags_NoInputs);
+    const bool handles = ImHasFlag(flags, ImPlotDragToolFlags_GrabHandles);
     const bool show_curs = !ImHasFlag(flags, ImPlotDragToolFlags_NoCursors);
     const bool no_delay = !ImHasFlag(flags, ImPlotDragToolFlags_Delayed);
     const float grab_half_size = ImMax(DRAG_GRAB_HALF_SIZE, thickness/2);
@@ -3965,8 +3966,21 @@ bool DragLineX(int n_id, double* value, const ImVec4& col, float thickness, ImPl
     bool hovered = false, held = false;
 
     ImGui::KeepAliveID(id);
+    float len = gp.Style.MajorTickLen.x;
     if (input) {
-        bool clicked = ImGui::ButtonBehavior(rect,id,&hovered,&held);
+        bool clicked;
+        if (handles) {
+            ImRect a(x-grab_half_size,yt,x+grab_half_size,yt+len);
+            ImRect b(x-grab_half_size,yb-len,x+grab_half_size,yb);
+            bool hova=false, helda=false;
+            bool hovb=false, heldb=false;
+            clicked = ImGui::ButtonBehavior(a,id,&hova,&helda);
+            clicked |= ImGui::ButtonBehavior(b,id,&hovb,&heldb);
+            hovered = hova || hovb;
+            held = helda || heldb;
+        } else {
+            clicked = ImGui::ButtonBehavior(rect,id,&hovered,&held);
+        }
         if (out_clicked) *out_clicked = clicked;
         if (out_hovered) *out_hovered = hovered;
         if (out_held)    *out_held    = held;
@@ -3975,7 +3989,6 @@ bool DragLineX(int n_id, double* value, const ImVec4& col, float thickness, ImPl
     if ((hovered || held) && show_curs)
         ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
 
-    float len = gp.Style.MajorTickLen.x;
     ImVec4 color = IsColorAuto(col) ? ImGui::GetStyleColorVec4(ImGuiCol_Text) : col;
     ImU32 col32 = ImGui::ColorConvertFloat4ToU32(color);
 
